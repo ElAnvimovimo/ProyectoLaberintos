@@ -110,7 +110,7 @@
                             </font>
                         </Button>
                         <ComboBox fx:id="comboBoxSizeLaberinto" layoutX="306.0" layoutY="15.0"
-                                  onAction="#cBSizeLaberintoClicked" prefHeight="26.0" prefWidth="114.0"
+                                  onAction="#comboBoxSizeLaberintoClicked" prefHeight="26.0" prefWidth="114.0"
                                   promptText="Maze Size" style="-fx-background-color: #b3e3b3;" visibleRowCount="5"/>
                         <Button fx:id="buttonJugar" layoutX="226.0" layoutY="52.0" mnemonicParsing="false"
                                 onAction="#jugarLaberinto" prefHeight="30.0" prefWidth="194.0"

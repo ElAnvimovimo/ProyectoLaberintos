@@ -1,7 +1,7 @@
 package model;
 
 public enum ModoJuego {
-    NORMAL("Normal (contra el tiempo)", true, 30, 10),
+    NORMAL("Normal (contra el tiempo)", true, 10, 10),
     LIBRE("Libre (sin tiempo limite)", false, 0, 0),
     PESADILLA("Pesadilla... Cuidado :)", true, 5, 30);
 

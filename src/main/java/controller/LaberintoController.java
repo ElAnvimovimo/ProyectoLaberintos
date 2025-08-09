@@ -1,7 +1,9 @@
 package controller;
 
+import database.JSQLite;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -29,7 +31,15 @@ import java.net.URL;
 import java.util.*;
 
 public class LaberintoController {
+    boolean partidaCompletada;
+    JSQLite jsqLite = new JSQLite();
+    private int puntajeMeta;
+
     Jugador jugador;
+
+    public boolean isPartidaCompletada() {
+        return partidaCompletada;
+    }
     int sizeLaberinto, colLaberinto;
     int startRow, startCol;
     Laberinto laberinto;
@@ -48,8 +58,11 @@ public class LaberintoController {
     private Timeline timerJuego;
     private Timeline timerPesadilla;
     private int tiempoRestante;
-    private Set<Celda> celdasOcultas = new HashSet<>();
-    private Random randomPesadilla = new Random();
+
+    public void setPartidaCompletada(boolean partidaCompletada) {
+        this.partidaCompletada = partidaCompletada;
+    }
+
     @FXML
     private Label labelJugador;
     @FXML
@@ -81,7 +94,6 @@ public class LaberintoController {
 
     public void setScene(Scene scene) {
         this.scene = scene;
-        System.out.println("Scene configurada en LaberintoController");
     }
 
     @FXML
@@ -105,36 +117,14 @@ public class LaberintoController {
     }
 
     private void configurarControlesTeclado() {
-        System.out.println("Configurando controles de teclado...");
-
         if (scene != null) {
-            System.out.println("Configurando eventos en Scene");
             scene.setOnKeyPressed(e -> {
-                System.out.println("Evento de teclado captado en Scene: " + e.getCode());
                 procesarTecla(e);
             });
-        } else {
-            System.out.println("ERROR: Scene es null, no se pueden configurar eventos de teclado");
         }
-
-        // Eventos de click para debug
-        paneLaberinto.setOnMouseClicked(e -> {
-            System.out.println("Click en pane - Scene focus");
-            if (scene != null) {
-                scene.getRoot().requestFocus();
-            }
-        });
-
-        canvasMaze.setOnMouseClicked(e -> {
-            System.out.println("Click en canvas - Scene focus");
-            if (scene != null) {
-                scene.getRoot().requestFocus();
-            }
-        });
     }
 
     private void iniciarModoJuego() {
-        // Detener timers anteriores si existen
         detenerTimers();
 
         switch (modoActual) {
@@ -158,7 +148,7 @@ public class LaberintoController {
             actualizarLabelTiempo();
 
             if (tiempoRestante <= 0) {
-                tiempoAgotado();
+                Platform.runLater(() -> tiempoAgotado());
             }
         }));
         timerJuego.setCycleCount(Timeline.INDEFINITE);
@@ -181,13 +171,12 @@ public class LaberintoController {
             actualizarLabelTiempo();
 
             if (tiempoRestante <= 0) {
+                timerJuego.stop();
                 tiempoAgotado();
             }
         }));
         timerJuego.setCycleCount(Timeline.INDEFINITE);
         timerJuego.play();
-
-        System.out.println("Modo Normal iniciado - Tiempo: " + modoActual.getTiempoSegundos() + " segundos");
     }
 
     private void actualizarLabelTiempo() {
@@ -195,8 +184,6 @@ public class LaberintoController {
             int minutos = tiempoRestante / 60;
             int segundos = tiempoRestante % 60;
             labelTiempo.setText(String.format("Tiempo: %02d:%02d", minutos, segundos));
-
-            // Cambiar color si queda poco tiempo
             if (tiempoRestante <= 10) {
                 labelTiempo.setTextFill(Color.RED);
             } else if (tiempoRestante <= 30) {
@@ -216,120 +203,134 @@ public class LaberintoController {
         }
     }
 
+    public void alertaNoCompletado() {
+        laberintoNoCompletado();
+        Alert alerta = new Alert(Alert.AlertType.WARNING);
+        alerta.setTitle("Tiempo Agotado");
+        alerta.setHeaderText("¡Se acabó el tiempo!");
+        alerta.setContentText("No lograste completar el laberinto a tiempo.");
+        alerta.show();
+
+    }
     private void tiempoAgotado() {
         detenerTimers();
         juegoEnCurso = false;
 
         if (modoActual == ModoJuego.PESADILLA) {
             mostrarJumpscare();
+            alertaNoCompletado();
         } else {
-            // Lógica de alerta para otros modos
-            Alert alerta = new Alert(Alert.AlertType.WARNING);
-            alerta.setTitle("Tiempo Agotado");
-            alerta.setHeaderText("¡Se acabó el tiempo!");
-            alerta.setContentText("No lograste completar el laberinto a tiempo.");
-            alerta.showAndWait();
+            alertaNoCompletado();
         }
-
-        // Restaurar controles
         comboBoxModoJuego.setDisable(false);
         comboBoxSizeLaberinto.setDisable(false);
         buttonNuevoLaberinto.setDisable(false);
         buttonResolver.setDisable(false);
     }
 
+    private void laberintoNoCompletado() {
+    }
+
     private void procesarTecla(javafx.scene.input.KeyEvent e) {
         if (!juegoEnCurso) {
-            System.out.println("Juego no en curso, ignorando input. Estado: " + juegoEnCurso);
             return;
         }
 
 
-        System.out.println("Procesando tecla: " + e.getCode() + " - Juego en curso: " + juegoEnCurso);
-
         switch (e.getCode()) {
             case I:
             case UP:
-                System.out.println("Moviendo Norte");
-                moverJugador(-1, 0); // Norte
+                moverJugador(-1, 0);
                 break;
             case K:
             case DOWN:
-                System.out.println("Moviendo Sur");
-                moverJugador(1, 0);  // Sur
+                moverJugador(1, 0);
                 break;
             case J:
             case LEFT:
-                System.out.println("Moviendo Oeste");
-                moverJugador(0, -1); // Oeste
+                moverJugador(0, -1);
                 break;
             case L:
             case RIGHT:
-                System.out.println("Moviendo Este");
-                moverJugador(0, 1);  // Este
+                moverJugador(0, 1);
                 break;
             default:
-                System.out.println("Tecla no reconocida: " + e.getCode());
                 break;
         }
-        e.consume(); // Consumir el evento
+        e.consume();
     }
 
     private void moverJugador(int deltaFila, int deltaColumna) {
         int nuevaFila = jugadorFila + deltaFila;
         int nuevaColumna = jugadorColumna + deltaColumna;
-
-        // Validar límites del laberinto
         if (nuevaFila < 1 || nuevaFila > sizeLaberinto ||
                 nuevaColumna < 1 || nuevaColumna > sizeLaberinto) {
             return;
         }
 
-        // Validar muros
         Celda celdaActual = laberintoCamino[jugadorFila][jugadorColumna];
         if (!esMovimientoValido(celdaActual, deltaFila, deltaColumna)) {
             return;
         }
 
-        // Actualizar posición
         jugadorFila = nuevaFila;
         jugadorColumna = nuevaColumna;
         movimientos++;
         actualizarPosicionJugador();
         if (jugadorFila == metaRow && jugadorColumna == metaCol) {
+
             laberintoCompletado();
         }
     }
 
     private void actualizarPosicionJugador() {
         double tamañoCelda = canvasMaze.getWidth() / sizeLaberinto;
-
-        // Actualizar posición del círculo del jugador
         jugadorActual.setCenterX((jugadorColumna - 0.5) * tamañoCelda);
         jugadorActual.setCenterY((jugadorFila - 0.5) * tamañoCelda);
     }
 
     private void laberintoCompletado() {
         juegoEnCurso = false;
-        // *** Solución: Detener el timer del juego al completar el laberinto ***
         detenerTimers();
 
         Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-        alerta.setTitle("¡Felicidades!");
-        alerta.setHeaderText("¡Has completado el laberinto!");
-        alerta.setContentText("Llegaste a la meta en " + movimientos + " movimientos");
+        alerta.setTitle("Felicidades!");
+        alerta.setHeaderText("Acabaste el laberinto!");
+        alerta.setContentText("Llegaste a la meta en " + movimientos + " movimientos\n" + calificacionMeta());
         alerta.showAndWait();
 
-        // Habilitar botones nuevamente
         buttonNuevoLaberinto.setDisable(false);
         buttonResolver.setDisable(false);
     }
 
+    private String calificacionMeta() {
+        resolverLaberinto();
+        if (movimientos >= pasosSolucion && movimientos < pasosSolucion * 1.2) {
+            puntajeMeta = 10;
+        }
+        if (movimientos >= pasosSolucion * 1.2 && movimientos < pasosSolucion * 1.4) {
+            puntajeMeta = 8;
+        }
+        if (movimientos >= pasosSolucion * 1.4 && movimientos < pasosSolucion * 1.6) {
+            puntajeMeta = 6;
+        }
+        if (movimientos >= pasosSolucion * 1.6 && movimientos < pasosSolucion * 1.8) {
+            puntajeMeta = 4;
+        }
+        if (movimientos >= pasosSolucion * 1.8 && movimientos < pasosSolucion * 2) {
+            puntajeMeta = 2;
+        }
+        if (movimientos > pasosSolucion * 2) {
+            puntajeMeta = 0;
+        }
+        return "Con un puntaje de " + puntajeMeta + "/10";
+    }
+
     private boolean esMovimientoValido(Celda celdaActual, int deltaFila, int deltaColumna) {
-        if (deltaFila == -1 && celdaActual.isMuroNorte()) return false; // Norte
-        if (deltaFila == 1 && celdaActual.isMuroSur()) return false;    // Sur
-        if (deltaColumna == -1 && celdaActual.isMuroOeste()) return false; // Oeste
-        if (deltaColumna == 1 && celdaActual.isMuroEste()) return false;   // Este
+        if (deltaFila == -1 && celdaActual.isMuroNorte()) return false;
+        if (deltaFila == 1 && celdaActual.isMuroSur()) return false;
+        if (deltaColumna == -1 && celdaActual.isMuroOeste()) return false;
+        if (deltaColumna == 1 && celdaActual.isMuroEste()) return false;
         return true;
     }
 
@@ -348,18 +349,18 @@ public class LaberintoController {
     void comboBoxModoJuegoClicked(ActionEvent event) {
         if (comboBoxModoJuego.getValue() != null) {
             modoActual = comboBoxModoJuego.getValue();
-            System.out.println("Modo seleccionado: " + modoActual);
+            //System.out.println("Modo seleccionado: " + modoActual);
             if (modoActual == ModoJuego.LIBRE) {
                 labelTiempo.setText("Tiempo: Ilimitado");
                 labelTiempo.setTextFill(Color.BLACK);
             }
         }
     }
-
-
     @FXML
     void resolverLaberinto(ActionEvent event) {
-        buttonResolver.setDisable(true);
+    }
+
+    public void resolverLaberinto() {
         padres.clear();
         laberintoCamino = laberinto.getLaberinto();
 
@@ -373,8 +374,6 @@ public class LaberintoController {
         padre.setPasos(0);
         fila.add(padre);
 
-        System.out.println(padre);
-
         while (!fila.isEmpty()) {
             padre = fila.remove();
             int row, col;
@@ -382,17 +381,14 @@ public class LaberintoController {
             col = padre.getColumna();
             if ((padre.getFila() == metaRow) && padre.getColumna() == metaCol) {
                 pasosSolucion = padre.getPasos();
-                System.out.println("Pasos recorridos: " + pasosSolucion);
-                dibujarCamino();
                 break;
             }
             laberintoCamino[row][col].setVisitado(true);
 
             row = padre.getFila();
             col = padre.getColumna();
-            System.out.println(padre);
+            //System.out.println(padre);
 
-            // Norte
             if (row > 1 && !padre.isMuroNorte() && !laberintoCamino[row - 1][col].isVisitado()) {
                 Celda vecina = laberintoCamino[row - 1][col];
                 vecina.setVisitado(true);
@@ -400,7 +396,6 @@ public class LaberintoController {
                 padres.put(vecina, padre);
                 fila.add(vecina);
             }
-            // Sur
             if (row < sizeLaberinto && !padre.isMuroSur() && !laberintoCamino[row + 1][col].isVisitado()) {
                 Celda vecina = laberintoCamino[row + 1][col];
                 vecina.setVisitado(true);
@@ -408,7 +403,6 @@ public class LaberintoController {
                 padres.put(vecina, padre);
                 fila.add(vecina);
             }
-            // Este
             if (col < sizeLaberinto && !padre.isMuroEste() && !laberintoCamino[row][col + 1].isVisitado()) {
                 Celda vecina = laberintoCamino[row][col + 1];
                 vecina.setVisitado(true);
@@ -416,7 +410,6 @@ public class LaberintoController {
                 padres.put(vecina, padre);
                 fila.add(vecina);
             }
-            // Oeste
             if (col > 1 && !padre.isMuroOeste() && !laberintoCamino[row][col - 1].isVisitado()) {
                 Celda vecina = laberintoCamino[row][col - 1];
                 vecina.setVisitado(true);
@@ -426,40 +419,6 @@ public class LaberintoController {
             }
         }
     }
-
-    private void dibujarCamino() {
-        List<Celda> camino = new ArrayList<>();
-        Celda actual = laberintoCamino[metaRow][metaCol];
-
-        while (actual != null) {
-            camino.add(actual);
-            actual = padres.get(actual);
-        }
-
-        Collections.reverse(camino);
-
-        // Dibujar el camino
-        GraphicsContext gc = canvasMaze.getGraphicsContext2D();
-        gc.setStroke(Color.web("7cbf7b"));
-        gc.setLineWidth((canvasMaze.getHeight() / sizeLaberinto) / 2.5);
-
-        double tamañoCelda = canvasMaze.getWidth() / sizeLaberinto;
-
-        for (int i = 0; i < camino.size() - 1; i++) {
-            Celda actualCelda = camino.get(i);
-            Celda siguienteCelda = camino.get(i + 1);
-
-            double x1 = (actualCelda.getColumna() - 0.5) * tamañoCelda;
-            double y1 = (actualCelda.getFila() - 0.5) * tamañoCelda;
-            double x2 = (siguienteCelda.getColumna() - 0.5) * tamañoCelda;
-            double y2 = (siguienteCelda.getFila() - 0.5) * tamañoCelda;
-
-            gc.strokeLine(x1, y1, x2, y2);
-        }
-
-        System.out.println("Camino reconstruido con " + camino.size() + " celdas");
-    }
-
     @FXML
     void nuevoLaberinto(ActionEvent event) {
         if (sizeLaberinto == 0) {
@@ -514,12 +473,8 @@ public class LaberintoController {
 
                 double x = (col - 1) * tileWidth;
                 double y = (fila - 1) * tileHeight;
-
-                // Fondo del laberinto
                 gc.setFill(Color.WHITE);
                 gc.fillRect(x + tileWidth * 0.01, y + tileHeight * 0.01, tileWidth * 0.98, tileHeight * 0.98);
-
-                //Muro s
                 gc.setStroke(Color.BLACK);
                 gc.setLineWidth(1);
 
@@ -584,8 +539,8 @@ public class LaberintoController {
             }
             Image jumpscareImage = new Image(imageUrl.toString());
             ImageView imageView = new ImageView(jumpscareImage);
-            imageView.setPreserveRatio(false);  // No mantener la relación de aspecto para que se estire
-            imageView.setFitWidth(Screen.getPrimary().getVisualBounds().getWidth());  // Ancho de la pantalla
+            imageView.setPreserveRatio(false);
+            imageView.setFitWidth(Screen.getPrimary().getVisualBounds().getWidth());
             imageView.setFitHeight(Screen.getPrimary().getVisualBounds().getHeight());
 
             URL soundUrl = getClass().getResource("/sounds/jumpscare.mp3");
@@ -608,10 +563,38 @@ public class LaberintoController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            alerta("Error al cargar el jumpscare: " + e.getMessage());
         }
     }
 
     public void reanudarPartida(LaberintoInfo laberintoInfo) {
+    }
+
+    public void guardarPartida(ActionEvent actionEvent) {
+        if (laberinto == null || jugador == null) {
+            alerta("No hay un laberinto o jugador para guardar");
+            return;
+        }
+        int idLaberinto = jsqLite.guardarLaberinto(laberinto);
+        boolean completada = (jugadorFila == metaRow && jugadorColumna == metaCol);
+
+        Partida partida = new Partida(
+                jugador,
+                modoActual,
+                sizeLaberinto,
+                movimientos,
+                tiempoRestante,
+                completada
+        );
+
+
+        jsqLite.insertarPartida(partida);
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle("Partida guardada");
+        alerta.setHeaderText(null);
+        alerta.setContentText("La partida se ha guardado correctamente");
+        alerta.showAndWait();
+
+        cambiosSinGuardar = false;
+
     }
 }

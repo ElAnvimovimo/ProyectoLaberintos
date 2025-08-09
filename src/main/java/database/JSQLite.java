@@ -32,7 +32,9 @@ public class JSQLite {
                         nombre_jugador TEXT NOT NULL,
                         filas INTEGER NOT NULL,
                         columnas INTEGER NOT NULL,
-                        fecha TEXT NOT NULL
+                        fecha TEXT NOT NULL,
+                        racha REAL DEFAULT 0.0,
+                        estado TEXT DEFAULT 'PENDIENTE'
                     )
                 """;
         String sqlCeldas = """
@@ -96,8 +98,9 @@ public class JSQLite {
             connection.setAutoCommit(false);
 
             try (PreparedStatement preparedStatement = connection.prepareStatement(sqlLaberinto, Statement.RETURN_GENERATED_KEYS)) {
-                preparedStatement.setInt(1, laberinto.getLaberinto().length);
-                preparedStatement.setInt(2, laberinto.getLaberinto()[0].length);
+                preparedStatement.setString(1, "nombreJugador");
+                preparedStatement.setInt(2, laberinto.getLaberinto().length);
+                preparedStatement.setInt(3, laberinto.getLaberinto()[0].length);
                 preparedStatement.executeUpdate();
 
                 try (ResultSet resultSet = preparedStatement.getGeneratedKeys()) {
@@ -177,7 +180,7 @@ public class JSQLite {
     }
 
     public List<LaberintoInfo> listarLaberintosInfo() {
-        String sql = "SELECT id, nombre_jugador, fecha FROM laberintos ORDER BY id DESC";
+        String sql = "SELECT id, nombre_jugador, fecha, racha, estado FROM laberintos ORDER BY id DESC";
         List<LaberintoInfo> lista = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(url);
              Statement st = conn.createStatement();
@@ -186,7 +189,10 @@ public class JSQLite {
                 lista.add(new LaberintoInfo(
                         rs.getInt("id"),
                         rs.getString("nombre_jugador"),
-                        rs.getString("fecha")
+                        rs.getString("fecha"),
+                        rs.getDouble("racha"),
+                        rs.getString("estado")
+
                 ));
             }
         } catch (SQLException e) {

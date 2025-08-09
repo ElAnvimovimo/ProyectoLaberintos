@@ -45,9 +45,9 @@ public class PartidasGuardadasController {
     @FXML
     void initialize() {
         colID.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colID.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        colID.setCellValueFactory(new PropertyValueFactory<>("fecha"));
-        colID.setCellValueFactory(new PropertyValueFactory<>("racha"));
+        colJugador.setCellValueFactory(new PropertyValueFactory<>("nombreJugador"));
+        colFecha.setCellValueFactory(new PropertyValueFactory<>("fecha"));
+        colRacha.setCellValueFactory(new PropertyValueFactory<>("racha"));
         colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
         cargarDatos();
     }
@@ -72,7 +72,6 @@ public class PartidasGuardadasController {
 
             stage.centerOnScreen();
             stage.setResizable(false);
-            //stage.setAlwaysOnTop(true);
             LaberintoController laberintoController = fxmlLoader.getController();
             laberintoController.reanudarPartida(laberintoInfo);
 
@@ -105,15 +104,14 @@ public class PartidasGuardadasController {
         final Stage stages = (Stage) node.getScene().getWindow();
         stages.close();
 
-        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource("tablero.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource("/laberinto.fxml"));
         try {
-            Scene scene = new Scene(fxmlLoader.load(), 454, 504);
+            Scene scene = new Scene(fxmlLoader.load(), 640, 640);
             Stage stage = new Stage();
             stage.setScene(scene);
 
             stage.centerOnScreen();
             stage.setResizable(false);
-            //stage.setAlwaysOnTop(true);
             LaberintoController laberintoController = fxmlLoader.getController();
             laberintoController.reanudarPartida(laberintoInfo);
 

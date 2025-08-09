@@ -26,7 +26,7 @@ public class AppController {
     private URL location;
 
     @FXML
-    private Button buttonJugar;
+    public Button buttonJugar;
 
     @FXML
     private Button buttonCargarPartida;
@@ -46,9 +46,8 @@ public class AppController {
         cargarVentanaLaberinto(nombreJugador);
     }
 
-    private void cargarVentanaLaberinto(String nombreJugador) {
+    public void cargarVentanaLaberinto(String nombreJugador) {
         FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource("/laberinto.fxml"));
-
         try {
             Scene scene = new Scene(fxmlLoader.load(), 640, 640);
             Stage stage = new Stage();
@@ -58,10 +57,7 @@ public class AppController {
             stage.setResizable(false);
 
             LaberintoController laberintoController = fxmlLoader.getController();
-
-            // AGREGAR ESTA LÍNEA - Pasar la scene al controlador
             laberintoController.setScene(scene);
-
             laberintoController.start(nombreJugador);
 
             stage.setOnCloseRequest(windowEvent -> {
@@ -76,13 +72,8 @@ public class AppController {
                     }
                 }
             });
-
             stage.show();
-
-            // AGREGAR ESTAS LÍNEAS - Asegurar focus inicial
             scene.getRoot().requestFocus();
-            System.out.println("Ventana de laberinto cargada y focus configurado");
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

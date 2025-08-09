@@ -70,8 +70,6 @@ public class LaberintoController {
     @FXML
     private Button buttonJugar;
     @FXML
-    private Button buttonResolver;
-    @FXML
     private Circle metaLaberinto;
     @FXML
     private Circle jugadorActual;
@@ -111,7 +109,6 @@ public class LaberintoController {
 
         configurarControlesTeclado();
         actualizarPosicionJugador();
-        buttonResolver.setDisable(true);
         buttonNuevoLaberinto.setDisable(true);
         iniciarModoJuego();
     }
@@ -225,7 +222,6 @@ public class LaberintoController {
         comboBoxModoJuego.setDisable(false);
         comboBoxSizeLaberinto.setDisable(false);
         buttonNuevoLaberinto.setDisable(false);
-        buttonResolver.setDisable(false);
     }
 
     private void laberintoNoCompletado() {
@@ -300,7 +296,6 @@ public class LaberintoController {
         alerta.showAndWait();
 
         buttonNuevoLaberinto.setDisable(false);
-        buttonResolver.setDisable(false);
     }
 
     private String calificacionMeta() {
@@ -323,7 +318,9 @@ public class LaberintoController {
         if (movimientos > pasosSolucion * 2) {
             puntajeMeta = 0;
         }
+        jugador.setRachaPartidas(puntajeMeta);
         return "Con un puntaje de " + puntajeMeta + "/10";
+
     }
 
     private boolean esMovimientoValido(Celda celdaActual, int deltaFila, int deltaColumna) {
@@ -349,7 +346,6 @@ public class LaberintoController {
     void comboBoxModoJuegoClicked(ActionEvent event) {
         if (comboBoxModoJuego.getValue() != null) {
             modoActual = comboBoxModoJuego.getValue();
-            //System.out.println("Modo seleccionado: " + modoActual);
             if (modoActual == ModoJuego.LIBRE) {
                 labelTiempo.setText("Tiempo: Ilimitado");
                 labelTiempo.setTextFill(Color.BLACK);
@@ -387,7 +383,6 @@ public class LaberintoController {
 
             row = padre.getFila();
             col = padre.getColumna();
-            //System.out.println(padre);
 
             if (row > 1 && !padre.isMuroNorte() && !laberintoCamino[row - 1][col].isVisitado()) {
                 Celda vecina = laberintoCamino[row - 1][col];
@@ -426,7 +421,6 @@ public class LaberintoController {
             return;
 
         }
-        buttonResolver.setDisable(false);
         Random random = new Random();
         laberinto = new Laberinto(sizeLaberinto, colLaberinto);
         laberinto.crearLaberinto();
@@ -438,7 +432,7 @@ public class LaberintoController {
         Celda cellAux = laberinto.getCeldaInicial();
         double tamañoCelda = canvasMaze.getWidth() / sizeLaberinto;
 
-        //Mostrar punto verde de la meta del laberinto
+
         startRow = 1;
         startCol = random.nextInt(1, sizeLaberinto);
         if (jugadorActual != null) {
@@ -451,7 +445,7 @@ public class LaberintoController {
         paneLaberinto.getChildren().add(player);
         jugadorActual = player;
 
-        //Mostrar punto negro de la meta del laberinto
+
         metaRow = sizeLaberinto;
         metaCol = random.nextInt(1, sizeLaberinto);
         if (metaLaberinto != null) {
@@ -510,7 +504,6 @@ public class LaberintoController {
 
     @FXML
     void initialize() {
-        buttonResolver.setDisable(true);
         buttonJugar.setDisable(true);
         sizeLaberinto = 0;
         colLaberinto = 0;
@@ -576,7 +569,7 @@ public class LaberintoController {
         }
         int idLaberinto = jsqLite.guardarLaberinto(laberinto);
         boolean completada = (jugadorFila == metaRow && jugadorColumna == metaCol);
-
+        jugador.setNombre(labelJugador.getText());
         Partida partida = new Partida(
                 jugador,
                 modoActual,

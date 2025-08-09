@@ -119,25 +119,23 @@
                 </Pane>
                 <Label fx:id="labelJugador" layoutX="230.0" layoutY="41.0" prefHeight="18.0" prefWidth="179.0"
                        text="Nombre"/>
-                <Label fx:id="labelTiempo" layoutX="42.0" layoutY="33.0" text="--">
-                    <font>
-                        <Font size="24.0"/>
-                    </font>
-                </Label>
-                <Button fx:id="buttonResolver" layoutX="8.0" layoutY="426.0" mnemonicParsing="false"
-                        onAction="#resolverLaberinto" prefHeight="30.0" prefWidth="87.0"
-                        style="-fx-background-color: #2b743e;" text="Resolver" textFill="WHITE">
-                    <font>
-                        <Font size="14.0"/>
-                    </font>
-                </Button>
-                <Button fx:id="buttonGuardarPartida" layoutX="8.0" layoutY="378.0" mnemonicParsing="false"
+                <Button fx:id="buttonGuardarPartida" layoutX="531.0" layoutY="18.0" mnemonicParsing="false"
                         onAction="#guardarPartida" prefHeight="30.0" prefWidth="87.0"
                         style="-fx-background-color: #2b743e;" text="Guardar" textFill="WHITE">
                     <font>
                         <Font size="14.0"/>
                     </font>
                 </Button>
+                <Pane layoutX="14.0" layoutY="14.0" prefHeight="60.0" prefWidth="96.0"
+                      style="-fx-background-color: #2b743e; -fx-background-radius: 25; -fx-border-radius: 25;">
+                    <children>
+                        <Label fx:id="labelTiempo" layoutX="38.0" layoutY="13.0" text="--" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold" size="24.0"/>
+                            </font>
+                        </Label>
+                    </children>
+                </Pane>
             </children>
         </AnchorPane>
     </children>

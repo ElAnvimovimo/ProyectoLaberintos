@@ -74,16 +74,16 @@ public class Laberinto {
         int df = celdaVecina.getFila() - auxCelda.getFila();
         int dc = celdaVecina.getColumna() - auxCelda.getColumna();
 
-        if (df == -1) { // Norte
+        if (df == -1) {
             auxCelda.setMuroNorte(false);
             celdaVecina.setMuroSur(false);
-        } else if (df == 1) { // Sur
+        } else if (df == 1) {
             auxCelda.setMuroSur(false);
             celdaVecina.setMuroNorte(false);
-        } else if (dc == -1) { // Oeste
+        } else if (dc == -1) {
             auxCelda.setMuroOeste(false);
             celdaVecina.setMuroEste(false);
-        } else if (dc == 1) { // Este
+        } else if (dc == 1) {
             auxCelda.setMuroEste(false);
             celdaVecina.setMuroOeste(false);
         }
@@ -94,10 +94,10 @@ public class Laberinto {
         int f = auxCelda.getFila();
         int c = auxCelda.getColumna();
 
-        if (laberinto[f - 1][c].isVisitado()) vecinos.add(laberinto[f - 1][c]); // Norte
-        if (laberinto[f + 1][c].isVisitado()) vecinos.add(laberinto[f + 1][c]); // Sur
-        if (laberinto[f][c - 1].isVisitado()) vecinos.add(laberinto[f][c - 1]); // Oeste
-        if (laberinto[f][c + 1].isVisitado()) vecinos.add(laberinto[f][c + 1]); // Este
+        if (laberinto[f - 1][c].isVisitado()) vecinos.add(laberinto[f - 1][c]);
+        if (laberinto[f + 1][c].isVisitado()) vecinos.add(laberinto[f + 1][c]);
+        if (laberinto[f][c - 1].isVisitado()) vecinos.add(laberinto[f][c - 1]);
+        if (laberinto[f][c + 1].isVisitado()) vecinos.add(laberinto[f][c + 1]);
 
         if (vecinos.isEmpty()) return null;
         return vecinos.get(new Random().nextInt(vecinos.size()));
@@ -106,18 +106,12 @@ public class Laberinto {
     private void buscarCeldasFrontera(Celda cel) {
         int f = cel.getFila();
         int c = cel.getColumna();
-
-        // Comprueba si el vecino del NORTE está dentro de los límites y no es un borde.
-        // La fila debe ser > 1 para que su vecino del norte (f-1) no sea la fila 0 (borde).
         if (f > 1) {
             Celda norte = laberinto[f - 1][c];
             if (!norte.isVisitado() && !listaFronteras.contains(norte)) {
                 listaFronteras.add(norte);
             }
         }
-
-        // Comprueba si el vecino del SUR está dentro de los límites y no es un borde.
-        // La fila debe ser < filas - 2 para que su vecino sur (f+1) no sea la última fila (borde).
         if (f < this.filas - 2) {
             Celda sur = laberinto[f + 1][c];
             if (!sur.isVisitado() && !listaFronteras.contains(sur)) {
@@ -125,15 +119,12 @@ public class Laberinto {
             }
         }
 
-        // Comprueba si el vecino del OESTE está dentro de los límites y no es un borde.
         if (c > 1) {
             Celda oeste = laberinto[f][c - 1];
             if (!oeste.isVisitado() && !listaFronteras.contains(oeste)) {
                 listaFronteras.add(oeste);
             }
         }
-
-        // Comprueba si el vecino del ESTE está dentro de los límites y no es un borde.
         if (c < this.columnas - 2) {
             Celda este = laberinto[f][c + 1];
             if (!este.isVisitado() && !listaFronteras.contains(este)) {

@@ -2,31 +2,33 @@ package controller;
 
 import database.JSQLite;
 import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import model.*;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
@@ -40,24 +42,34 @@ public class LaberintoController {
     public boolean isPartidaCompletada() {
         return partidaCompletada;
     }
-    int sizeLaberinto, colLaberinto;
+
+    private final Map<Celda, Celda> padres = new HashMap<>();
+    int sizeLaberinto;
     int startRow, startCol;
     Laberinto laberinto;
     Celda padre;
     int metaRow, metaCol, pasosSolucion;
     Queue<Celda> fila = new LinkedList<>();
+    @FXML
+    GraphicsContext graphicsContextCanvasMaze;
     private Scene scene;
     private int jugadorFila;
     private int jugadorColumna;
     private boolean juegoEnCurso = false;
     private Celda[][] laberintoCamino;
-    private Map<Celda, Celda> padres = new HashMap<>();
+    private boolean controlesConfigurados = false;
     private boolean cambiosSinGuardar;
     private int movimientos = 0;
     private ModoJuego modoActual = ModoJuego.NORMAL;
     private Timeline timerJuego;
     private Timeline timerPesadilla;
     private int tiempoRestante;
+    @FXML
+    private Label labelRacha;
+    private double racha;
+    private boolean partidaPausada;
+    private boolean partidaReanudada;
+    private double tamanioCelda;
 
     public void setPartidaCompletada(boolean partidaCompletada) {
         this.partidaCompletada = partidaCompletada;
@@ -65,10 +77,9 @@ public class LaberintoController {
 
     @FXML
     private Label labelJugador;
+    private int juegosTerminados;
     @FXML
-    private Label labelTiempo;
-    @FXML
-    private Button buttonJugar;
+    private Label labelPausa;
     @FXML
     private Circle metaLaberinto;
     @FXML
@@ -86,22 +97,22 @@ public class LaberintoController {
     @FXML
     private Button buttonNuevoLaberinto;
     @FXML
-    private ComboBox<Integer> comboBoxSizeLaberinto;
+    private Label labelTiempo;
     @FXML
     private ComboBox<ModoJuego> comboBoxModoJuego;
+    @FXML
+    private ComboBox<Dificultad> comboBoxSizeLaberinto;
 
     public void setScene(Scene scene) {
         this.scene = scene;
     }
+    private int partidaIdActual = -1;
 
-    @FXML
-    void jugarLaberinto(ActionEvent event) {
+    void jugarLaberinto() {
+        movimientos = 0;
         comboBoxModoJuego.setDisable(true);
         comboBoxSizeLaberinto.setDisable(true);
-        if (laberinto == null) {
-            alerta("Primero genera un laberinto");
-            return;
-        }
+
         laberintoCamino = laberinto.getLaberinto();
         jugadorFila = startRow;
         jugadorColumna = startCol;
@@ -111,14 +122,7 @@ public class LaberintoController {
         actualizarPosicionJugador();
         buttonNuevoLaberinto.setDisable(true);
         iniciarModoJuego();
-    }
 
-    private void configurarControlesTeclado() {
-        if (scene != null) {
-            scene.setOnKeyPressed(e -> {
-                procesarTecla(e);
-            });
-        }
     }
 
     private void iniciarModoJuego() {
@@ -136,8 +140,26 @@ public class LaberintoController {
         }
     }
 
+    private void configurarControlesTeclado() {
+        if (scene != null && !controlesConfigurados) {
+            scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                if (e.getCode() == KeyCode.SPACE) {
+                    e.consume();
+                    togglePausa();
+                    return;
+                }
+                if (!partidaPausada) {
+                    procesarTecla(e);
+                }
+            });
+            controlesConfigurados = true;
+        }
+    }
+
     private void iniciarModoPesadilla() {
-        tiempoRestante = modoActual.getTiempoSegundos();
+        if (!partidaReanudada) {
+            tiempoRestante = calcularTiempo(modoActual, sizeLaberinto);
+        }
         actualizarLabelTiempo();
 
         timerJuego = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -155,12 +177,14 @@ public class LaberintoController {
     }
 
     private void iniciarModoLibre() {
-        labelTiempo.setText("Tiempo: Ilimitado");
-        labelTiempo.setTextFill(Color.BLACK);
+        labelTiempo.setText("-:-");
+        labelTiempo.setTextFill(Color.WHITE);
     }
 
     private void iniciarModoNormal() {
-        tiempoRestante = modoActual.getTiempoSegundos();
+        if (!partidaReanudada) {
+            tiempoRestante = calcularTiempo(modoActual, sizeLaberinto);
+        }
         actualizarLabelTiempo();
 
         timerJuego = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -176,21 +200,6 @@ public class LaberintoController {
         timerJuego.play();
     }
 
-    private void actualizarLabelTiempo() {
-        if (labelTiempo != null) {
-            int minutos = tiempoRestante / 60;
-            int segundos = tiempoRestante % 60;
-            labelTiempo.setText(String.format("Tiempo: %02d:%02d", minutos, segundos));
-            if (tiempoRestante <= 10) {
-                labelTiempo.setTextFill(Color.RED);
-            } else if (tiempoRestante <= 30) {
-                labelTiempo.setTextFill(Color.ORANGE);
-            } else {
-                labelTiempo.setTextFill(Color.BLACK);
-            }
-        }
-    }
-
     private void detenerTimers() {
         if (timerJuego != null) {
             timerJuego.stop();
@@ -200,39 +209,44 @@ public class LaberintoController {
         }
     }
 
-    public void alertaNoCompletado() {
-        laberintoNoCompletado();
-        Alert alerta = new Alert(Alert.AlertType.WARNING);
-        alerta.setTitle("Tiempo Agotado");
-        alerta.setHeaderText("¡Se acabó el tiempo!");
-        alerta.setContentText("No lograste completar el laberinto a tiempo.");
-        alerta.show();
-
+    private void actualizarLabelTiempo() {
+        if (labelTiempo != null) {
+            int minutos = tiempoRestante / 60;
+            int segundos = tiempoRestante % 60;
+            labelTiempo.setText(String.format("%02d:%02d", minutos, segundos));
+            if (modoActual == ModoJuego.PESADILLA) {
+                labelTiempo.setTextFill(Color.BLACK);
+            }
+        }
     }
+
     private void tiempoAgotado() {
         detenerTimers();
         juegoEnCurso = false;
 
         if (modoActual == ModoJuego.PESADILLA) {
             mostrarJumpscare();
-            alertaNoCompletado();
-        } else {
-            alertaNoCompletado();
-        }
-        comboBoxModoJuego.setDisable(false);
-        comboBoxSizeLaberinto.setDisable(false);
-        buttonNuevoLaberinto.setDisable(false);
-    }
+            PauseTransition pause = new PauseTransition(Duration.seconds(3));
+            pause.setOnFinished(event -> {
+                laberintoNoCompletado();
+                comboBoxModoJuego.setDisable(false);
+                comboBoxSizeLaberinto.setDisable(false);
+                buttonNuevoLaberinto.setDisable(false);
+            });
+            pause.play();
 
-    private void laberintoNoCompletado() {
+        } else {
+            laberintoNoCompletado();
+            comboBoxModoJuego.setDisable(false);
+            comboBoxSizeLaberinto.setDisable(false);
+            buttonNuevoLaberinto.setDisable(false);
+        }
     }
 
     private void procesarTecla(javafx.scene.input.KeyEvent e) {
         if (!juegoEnCurso) {
             return;
         }
-
-
         switch (e.getCode()) {
             case I:
             case UP:
@@ -256,6 +270,15 @@ public class LaberintoController {
         e.consume();
     }
 
+    private void laberintoNoCompletado() {
+        puntajeMeta = 0;
+        racha = (racha * juegosTerminados) + puntajeMeta;
+        juegosTerminados++;
+        racha = racha / juegosTerminados;
+
+        dialogFinDePartida("Tiempo Agotado\nNo lograste completar el laberinto a tiempo.");
+    }
+
     private void moverJugador(int deltaFila, int deltaColumna) {
         int nuevaFila = jugadorFila + deltaFila;
         int nuevaColumna = jugadorColumna + deltaColumna;
@@ -272,6 +295,7 @@ public class LaberintoController {
         jugadorFila = nuevaFila;
         jugadorColumna = nuevaColumna;
         movimientos++;
+        cambiosSinGuardar = true;
         actualizarPosicionJugador();
         if (jugadorFila == metaRow && jugadorColumna == metaCol) {
 
@@ -280,22 +304,13 @@ public class LaberintoController {
     }
 
     private void actualizarPosicionJugador() {
-        double tamañoCelda = canvasMaze.getWidth() / sizeLaberinto;
-        jugadorActual.setCenterX((jugadorColumna - 0.5) * tamañoCelda);
-        jugadorActual.setCenterY((jugadorFila - 0.5) * tamañoCelda);
+        jugadorActual.setCenterX((jugadorColumna - 0.5) * tamanioCelda);
+        jugadorActual.setCenterY((jugadorFila - 0.5) * tamanioCelda);
     }
 
     private void laberintoCompletado() {
-        juegoEnCurso = false;
         detenerTimers();
-
-        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-        alerta.setTitle("Felicidades!");
-        alerta.setHeaderText("Acabaste el laberinto!");
-        alerta.setContentText("Llegaste a la meta en " + movimientos + " movimientos\n" + calificacionMeta());
-        alerta.showAndWait();
-
-        buttonNuevoLaberinto.setDisable(false);
+        dialogFinDePartida("Felicidades, resolviste el laberinto en " + movimientos + " movimientos.\n" + calificacionMeta());
     }
 
     private String calificacionMeta() {
@@ -318,8 +333,12 @@ public class LaberintoController {
         if (movimientos > pasosSolucion * 2) {
             puntajeMeta = 0;
         }
+        racha = (racha * juegosTerminados) + puntajeMeta;
+        juegosTerminados++;
+        racha = racha / juegosTerminados;
         jugador.setRachaPartidas(puntajeMeta);
         return "Con un puntaje de " + puntajeMeta + "/10";
+
 
     }
 
@@ -327,31 +346,16 @@ public class LaberintoController {
         if (deltaFila == -1 && celdaActual.isMuroNorte()) return false;
         if (deltaFila == 1 && celdaActual.isMuroSur()) return false;
         if (deltaColumna == -1 && celdaActual.isMuroOeste()) return false;
-        if (deltaColumna == 1 && celdaActual.isMuroEste()) return false;
-        return true;
+        return deltaColumna != 1 || !celdaActual.isMuroEste();
     }
-
 
     @FXML
     void comboBoxSizeLaberintoClicked(ActionEvent event) {
-        Object evento = event.getSource();
-
-        if (evento.equals(comboBoxSizeLaberinto)) {
-            sizeLaberinto = comboBoxSizeLaberinto.getSelectionModel().getSelectedItem();
-            colLaberinto = sizeLaberinto;
+        if (comboBoxSizeLaberinto.getValue() != null) {
+            sizeLaberinto = comboBoxSizeLaberinto.getSelectionModel().getSelectedItem().getValor();
         }
     }
 
-    @FXML
-    void comboBoxModoJuegoClicked(ActionEvent event) {
-        if (comboBoxModoJuego.getValue() != null) {
-            modoActual = comboBoxModoJuego.getValue();
-            if (modoActual == ModoJuego.LIBRE) {
-                labelTiempo.setText("Tiempo: Ilimitado");
-                labelTiempo.setTextFill(Color.BLACK);
-            }
-        }
-    }
     @FXML
     void resolverLaberinto(ActionEvent event) {
     }
@@ -414,84 +418,16 @@ public class LaberintoController {
             }
         }
     }
+
     @FXML
-    void nuevoLaberinto(ActionEvent event) {
-        if (sizeLaberinto == 0) {
-            alerta("No has seleccionado un tamaño para el laberinto!");
-            return;
-
-        }
-        Random random = new Random();
-        laberinto = new Laberinto(sizeLaberinto, colLaberinto);
-        laberinto.crearLaberinto();
-        laberinto.recorrerLaberinto();
-
-        GraphicsContext gc = canvasMaze.getGraphicsContext2D();
-        gc.clearRect(0, 0, canvasMaze.getWidth(), canvasMaze.getHeight());
-        Celda[][] matLaberinto = laberinto.getLaberinto();
-        Celda cellAux = laberinto.getCeldaInicial();
-        double tamañoCelda = canvasMaze.getWidth() / sizeLaberinto;
-
-
-        startRow = 1;
-        startCol = random.nextInt(1, sizeLaberinto);
-        if (jugadorActual != null) {
-            paneLaberinto.getChildren().remove(jugadorActual);
-        }
-        Circle player = new Circle(tamañoCelda / 2.5);
-        player.setFill(Color.web("2b743e"));
-        player.setCenterX((startCol - 0.5) * tamañoCelda);
-        player.setCenterY((startRow - 0.5) * tamañoCelda);
-        paneLaberinto.getChildren().add(player);
-        jugadorActual = player;
-
-
-        metaRow = sizeLaberinto;
-        metaCol = random.nextInt(1, sizeLaberinto);
-        if (metaLaberinto != null) {
-            paneLaberinto.getChildren().remove(metaLaberinto);
-        }
-        Circle circleMeta = new Circle(tamañoCelda / 2.5);
-        circleMeta.setFill(Color.BLACK);
-        circleMeta.setCenterX((metaCol - 0.5) * tamañoCelda);
-        circleMeta.setCenterY((metaRow - 0.5) * tamañoCelda);
-        paneLaberinto.getChildren().add(circleMeta);
-        metaLaberinto = circleMeta;
-
-        double tileWidth = canvasMaze.getWidth() / sizeLaberinto;
-        double tileHeight = canvasMaze.getHeight() / sizeLaberinto;
-
-        for (int fila = 1; fila <= sizeLaberinto; fila++) {
-            for (int col = 1; col <= sizeLaberinto; col++) {
-                Celda cel = matLaberinto[fila][col];
-
-                double x = (col - 1) * tileWidth;
-                double y = (fila - 1) * tileHeight;
-                gc.setFill(Color.WHITE);
-                gc.fillRect(x + tileWidth * 0.01, y + tileHeight * 0.01, tileWidth * 0.98, tileHeight * 0.98);
-                gc.setStroke(Color.BLACK);
-                gc.setLineWidth(1);
-
-                if (cel.isMuroNorte()) {
-                    gc.strokeLine(x, y, x + tileWidth, y);
-                }
-                if (cel.isMuroSur()) {
-                    gc.strokeLine(x, y + tileHeight, x + tileWidth, y + tileHeight);
-                }
-                if (cel.isMuroEste()) {
-                    gc.strokeLine(x + tileWidth, y, x + tileWidth, y + tileHeight);
-                }
-                if (cel.isMuroOeste()) {
-                    gc.strokeLine(x, y, x, y + tileHeight);
-                }
+    void comboBoxModoJuegoClicked(ActionEvent event) {
+        if (comboBoxModoJuego.getValue() != null) {
+            modoActual = comboBoxModoJuego.getValue();
+            if (modoActual == ModoJuego.LIBRE) {
+                labelTiempo.setText("-:-");
+                labelTiempo.setTextFill(Color.WHITE);
             }
         }
-        buttonJugar.setDisable(false);
-        juegoEnCurso = false;
-        jugadorFila = startRow;
-        jugadorColumna = startCol;
-        actualizarPosicionJugador();
-
     }
 
     private void alerta(String msg) {
@@ -503,14 +439,21 @@ public class LaberintoController {
     }
 
     @FXML
-    void initialize() {
-        buttonJugar.setDisable(true);
-        sizeLaberinto = 0;
-        colLaberinto = 0;
-        ArrayList<Integer> listaSize = new ArrayList<>();
-        Collections.addAll(listaSize, 10, 20, 30);
-        comboBoxSizeLaberinto.getItems().addAll(listaSize);
-        comboBoxModoJuego.getItems().setAll(ModoJuego.values());
+    void nuevoLaberinto(ActionEvent event) {
+        if (!validarTamanioLaberinto()) {
+            return;
+        }
+
+        calcularTamanioCelda();
+        crearYGenerarLaberinto();
+
+        dibujarLaberinto();
+        colocarPuntoJugador();
+        colocarPuntoMeta();
+        jugadorFila = startRow;
+        jugadorColumna = startCol;
+        actualizarPosicionJugador();
+        jugarLaberinto();
 
     }
 
@@ -518,9 +461,23 @@ public class LaberintoController {
         return cambiosSinGuardar;
     }
 
-    public void start(String nombreJugador) {
-        jugador = new Jugador(nombreJugador, 0);
+    @FXML
+    void initialize() {
+        labelPausa.setVisible(false);
+        partidaReanudada = false;
+        partidaPausada = false;
+        sizeLaberinto = 0;
+        comboBoxModoJuego.getItems().setAll(ModoJuego.values());
+        comboBoxSizeLaberinto.getItems().setAll((Dificultad.values()));
+    }
+
+    public void start(String nombreJugador, double racha, int juegosTerminados) {
+        jugador = new Jugador(nombreJugador, racha, juegosTerminados);
+        this.racha = racha;
         labelJugador.setText(nombreJugador);
+        this.juegosTerminados = juegosTerminados;
+        labelRacha.setText(String.valueOf(racha));
+
     }
 
     private void mostrarJumpscare() {
@@ -533,8 +490,8 @@ public class LaberintoController {
             Image jumpscareImage = new Image(imageUrl.toString());
             ImageView imageView = new ImageView(jumpscareImage);
             imageView.setPreserveRatio(false);
-            imageView.setFitWidth(Screen.getPrimary().getVisualBounds().getWidth());
-            imageView.setFitHeight(Screen.getPrimary().getVisualBounds().getHeight());
+            imageView.setFitWidth(1920);
+            imageView.setFitHeight(1080);
 
             URL soundUrl = getClass().getResource("/sounds/jumpscare.mp3");
             if (soundUrl == null) {
@@ -549,45 +506,361 @@ public class LaberintoController {
             Stage jumpscareStage = new Stage();
             jumpscareStage.initStyle(StageStyle.UNDECORATED);
             jumpscareStage.setScene(new Scene(new StackPane(imageView)));
-            jumpscareStage.setFullScreen(true);
+            jumpscareStage.alwaysOnTopProperty();
             jumpscareStage.show();
             Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(3), ev -> jumpscareStage.close()));
-            timeline.play();
+            timeline.playFrom(Duration.millis(200));
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void reanudarPartida(LaberintoInfo laberintoInfo) {
-    }
-
     public void guardarPartida(ActionEvent actionEvent) {
-        if (laberinto == null || jugador == null) {
-            alerta("No hay un laberinto o jugador para guardar");
-            return;
-        }
-        int idLaberinto = jsqLite.guardarLaberinto(laberinto);
-        boolean completada = (jugadorFila == metaRow && jugadorColumna == metaCol);
-        jugador.setNombre(labelJugador.getText());
-        Partida partida = new Partida(
-                jugador,
-                modoActual,
+        pausarJuego();
+        String laberintoJson = jsqLite.convertirLaberintoAJson(this.laberinto);
+
+        LaberintoInfo partidaParaGuardar = new LaberintoInfo(
+                this.partidaIdActual,
+                jugador.getNombre(),
+                null,
+                racha,
+                "EN_CURSO",
+                laberintoJson,
                 sizeLaberinto,
                 movimientos,
+                jugadorFila,
+                jugadorColumna,
+                metaRow,
+                metaCol,
+                modoActual,
                 tiempoRestante,
-                completada
+                juegosTerminados
         );
+        int idResultado = jsqLite.guardarOActualizarPartida(partidaParaGuardar);
+
+        if (idResultado != -1) {
+            this.partidaIdActual = idResultado;
+            alerta("Partida guardada en ID: " + idResultado);
+            cambiosSinGuardar = false;
+        } else {
+            alerta("Error al guardar la partida.");
+        }
+    }
+
+    private void dialogFinDePartida(String msg) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.initOwner(canvasMaze.getScene().getWindow());
+        dialog.setTitle("Fin de Partida");
+        dialog.setHeaderText(msg);
+
+        ButtonType botonSeguirJuego = new ButtonType("Continuar el juego", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonVolverMenu = new ButtonType("Regresar al menu inicial");
+        ButtonType botonSalirJuego = new ButtonType("Salir", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        dialog.getDialogPane().getButtonTypes().addAll(botonSeguirJuego, botonVolverMenu, botonSalirJuego);
+        Platform.runLater(() -> {
+            Optional<ButtonType> respuesta = dialog.showAndWait();
+            respuesta.ifPresent(respuestaA -> {
+                if (respuestaA == botonSeguirJuego) {
+                    reiniciarUI();
+                    start(jugador.getNombre(), racha, juegosTerminados);
+                } else if (respuestaA == botonVolverMenu) {
+                    volverAlMenu();
+                } else if (respuestaA == botonSalirJuego) {
+                    if (cambiosSinGuardar) {
+                        pausarJuego();
+
+                        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                        alert.initOwner(canvasMaze.getScene().getWindow());
+                        alert.setTitle("Confirmar Cierre");
+                        alert.setHeaderText("Hay cambios sin guardar");
+                        alert.setContentText("¿Estás seguro de que quieres salir?");
+                        Optional<ButtonType> accion = alert.showAndWait();
+                        if (accion.isPresent() && accion.get() == ButtonType.OK) {
+                            Platform.exit();
+                        }
+                    } else {
+                        Platform.exit();
+                    }
+                }
+            });
+        });
+
+    }
+
+    private void reiniciarUI() {
+        labelTiempo.setText("-:-");
+
+        comboBoxModoJuego.setDisable(false);
+        comboBoxSizeLaberinto.setDisable(false);
+        buttonNuevoLaberinto.setDisable(false);
 
 
-        jsqLite.insertarPartida(partida);
-        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-        alerta.setTitle("Partida guardada");
-        alerta.setHeaderText(null);
-        alerta.setContentText("La partida se ha guardado correctamente");
-        alerta.showAndWait();
+        comboBoxModoJuego.getItems().setAll(ModoJuego.values());
+        comboBoxSizeLaberinto.getItems().setAll(Dificultad.values());
 
-        cambiosSinGuardar = false;
+        comboBoxModoJuego.setValue(null);
+        comboBoxSizeLaberinto.setValue(null);
+        comboBoxSizeLaberinto.setPromptText("DIFICULTAD");
+        comboBoxModoJuego.setPromptText("MODO");
 
+        sizeLaberinto = 0;
+        modoActual = null;
+        jugadorFila = 0;
+        jugadorColumna = 0;
+        movimientos = 0;
+        juegoEnCurso = false;
+        partidaPausada = false;
+        partidaReanudada = false;
+
+        detenerTimers();
+        paneLaberinto.getChildren().remove(jugadorActual);
+        paneLaberinto.getChildren().remove(metaLaberinto);
+
+        limpiarCanvas();
+    }
+
+    public void reanudarPartida(LaberintoInfo info) {
+        String laberintoJson = info.getLaberintoJson();
+        if (laberintoJson != null) {
+            this.laberinto = new JSQLite().cargarLaberintoDesdeJSON(laberintoJson);
+        } else {
+            this.laberinto = null;
+        }
+        if (this.laberinto != null && this.laberinto.getLaberinto() != null && info.getModoJuego() != null) {
+            this.laberintoCamino = laberinto.getLaberinto();
+            this.partidaIdActual = info.getId();
+            this.sizeLaberinto = info.getSizeLaberinto();
+            this.movimientos = info.getMovimientos();
+            this.jugadorFila = info.getRowJugador();
+            this.jugadorColumna = info.getColJugador();
+            this.metaRow = info.getRowMeta();
+            this.metaCol = info.getColMeta();
+            this.modoActual = info.getModoJuego();
+            this.tiempoRestante = info.getTiempoRestante();
+            this.racha = info.getRacha();
+            this.juegosTerminados = info.getJuegosTerminados();
+
+            calcularTamanioCelda();
+            start(info.getNombreJugador(), info.getRacha(), info.getJuegosTerminados());
+            this.jugador.setRachaPartidas(racha);
+            redibujarLaberintoDesdeObjeto();
+            actualizarLabelTiempo();
+
+            juegoEnCurso = true;
+            controlesConfigurados = false;
+            configurarControlesTeclado();
+
+            Platform.runLater(() -> {
+                paneLaberinto.requestFocus();
+            });
+            pausarJuego();
+        } else {
+            partidaIdActual = info.getId();
+            reiniciarUI();
+            start(info.getNombreJugador(), info.getRacha(), info.getJuegosTerminados());
+        }
+    }
+
+    private void redibujarLaberintoDesdeObjeto() {
+        dibujarLaberinto();
+        colocarPuntoJugadorReanudar();
+        colocarPuntoMetaReanudar();
+    }
+
+    private void volverAlMenu() {
+        try {
+            Stage stage = (Stage) canvasMaze.getScene().getWindow();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app.fxml"));
+            Parent root = loader.load();
+
+            Scene scene = new Scene(root);
+
+            stage.setScene(scene);
+
+            stage.centerOnScreen();
+
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("Error al mostrar la ventana de Menu");
+            e.printStackTrace();
+        }
+    }
+
+    private boolean validarTamanioLaberinto() {
+        if (sizeLaberinto == 0) {
+            alerta("No has seleccionado un tamanio para el laberinto!");
+            return false;
+        }
+        return true;
+    }
+
+    private void crearYGenerarLaberinto() {
+        laberinto = new Laberinto(sizeLaberinto);
+        laberinto.crearLaberinto();
+        laberinto.recorrerLaberinto();
+    }
+
+    private void limpiarCanvas() {
+        graphicsContextCanvasMaze = canvasMaze.getGraphicsContext2D();
+        graphicsContextCanvasMaze.clearRect(0, 0, canvasMaze.getWidth(), canvasMaze.getHeight());
+
+    }
+
+    private void dibujarLaberinto() {
+        if (laberinto == null || laberinto.getLaberinto() == null) {
+            System.err.println("Error. Laberinto es null");
+            return;
+        }
+        if (graphicsContextCanvasMaze == null) {
+            graphicsContextCanvasMaze = canvasMaze.getGraphicsContext2D();
+        }
+
+
+        Color colorPrimario;
+        Color colorSecundario;
+
+        colorPrimario = Color.WHITE;
+        colorSecundario = Color.BLACK;
+
+        graphicsContextCanvasMaze = canvasMaze.getGraphicsContext2D();
+        graphicsContextCanvasMaze.clearRect(0, 0, canvasMaze.getWidth(), canvasMaze.getHeight());
+
+        double tileWidth = canvasMaze.getWidth() / sizeLaberinto;
+        double tileHeight = canvasMaze.getHeight() / sizeLaberinto;
+
+
+        Celda[][] matLaberinto = laberinto.getLaberinto();
+
+        for (int fila = 1; fila <= sizeLaberinto; fila++) {
+            for (int col = 1; col <= sizeLaberinto; col++) {
+
+                Celda cel = matLaberinto[fila][col];
+
+                double x = (col - 1) * tileWidth;
+                double y = (fila - 1) * tileHeight;
+                graphicsContextCanvasMaze.setFill(colorPrimario);
+                graphicsContextCanvasMaze.fillRect(x + tileWidth * 0.01, y + tileHeight * 0.01, tileWidth * 0.98, tileHeight * 0.98);
+                graphicsContextCanvasMaze.setStroke(colorSecundario);
+                graphicsContextCanvasMaze.setLineWidth(1);
+
+                if (cel.isMuroNorte()) {
+                    graphicsContextCanvasMaze.strokeLine(x, y, x + tileWidth, y);
+                }
+                if (cel.isMuroSur()) {
+                    graphicsContextCanvasMaze.strokeLine(x, y + tileHeight, x + tileWidth, y + tileHeight);
+                }
+                if (cel.isMuroEste()) {
+                    graphicsContextCanvasMaze.strokeLine(x + tileWidth, y, x + tileWidth, y + tileHeight);
+                }
+                if (cel.isMuroOeste()) {
+                    graphicsContextCanvasMaze.strokeLine(x, y, x, y + tileHeight);
+                }
+            }
+        }
+    }
+
+    void pausarJuego() {
+        if (!juegoEnCurso || partidaPausada) return;
+        detenerTimers();
+        partidaPausada = true;
+        labelPausa.setVisible(true);
+    }
+
+    private void reanudarJuegoPausa() {
+        partidaReanudada = true;
+        if (!juegoEnCurso || !partidaPausada) return;
+        iniciarModoJuego();
+        partidaPausada = false;
+        labelPausa.setVisible(false);
+    }
+
+    private void togglePausa() {
+        if (partidaPausada) {
+            reanudarJuegoPausa();
+        } else {
+            pausarJuego();
+        }
+    }
+
+    void colocarPuntoJugador() {
+        Random random = new Random();
+        startRow = 1;
+        startCol = random.nextInt(1, sizeLaberinto);
+        if (jugadorActual != null) {
+            paneLaberinto.getChildren().remove(jugadorActual);
+        }
+
+        Circle player = new Circle(tamanioCelda / 2.5);
+        player.setFill(Color.web("2b743e"));
+        player.setCenterX((startCol - 0.5) * tamanioCelda);
+        player.setCenterY((startRow - 0.5) * tamanioCelda);
+        paneLaberinto.getChildren().add(player);
+        jugadorActual = player;
+    }
+
+    void colocarPuntoJugadorReanudar() {
+        Circle player = new Circle(tamanioCelda / 2.5);
+        player.setFill(Color.web("2b743e"));
+        player.setCenterX((jugadorColumna - 0.5) * tamanioCelda);
+        player.setCenterY((jugadorFila - 0.5) * tamanioCelda);
+        paneLaberinto.getChildren().add(player);
+        jugadorActual = player;
+    }
+
+    void colocarPuntoMetaReanudar() {
+        Circle circleMeta = new Circle(tamanioCelda / 2.5);
+        circleMeta.setFill(Color.BLACK);
+        circleMeta.setCenterX((metaCol - 0.5) * tamanioCelda);
+        circleMeta.setCenterY((metaRow - 0.5) * tamanioCelda);
+        paneLaberinto.getChildren().add(circleMeta);
+        metaLaberinto = circleMeta;
+    }
+
+    void colocarPuntoMeta() {
+        Random random = new Random();
+        metaRow = sizeLaberinto;
+        metaCol = random.nextInt(1, sizeLaberinto);
+        if (metaLaberinto != null) {
+            paneLaberinto.getChildren().remove(metaLaberinto);
+        }
+        Circle circleMeta = new Circle(tamanioCelda / 2.5);
+        circleMeta.setFill(Color.BLACK);
+        circleMeta.setCenterX((metaCol - 0.5) * tamanioCelda);
+        circleMeta.setCenterY((metaRow - 0.5) * tamanioCelda);
+        paneLaberinto.getChildren().add(circleMeta);
+        metaLaberinto = circleMeta;
+    }
+
+    void calcularTamanioCelda() {
+        if (canvasMaze == null || sizeLaberinto <= 0) {
+            System.err.println("Error: Canvas null o size inválido");
+            tamanioCelda = 0;
+            return;
+        }
+
+        double width = canvasMaze.getWidth();
+        double height = canvasMaze.getHeight();
+
+        tamanioCelda = Math.min(width, height) / sizeLaberinto;
+    }
+
+    private int calcularTiempo(ModoJuego modo, int sizeLaberinto) {
+        if (modo == ModoJuego.LIBRE) return 0;
+
+        if (modo == ModoJuego.NORMAL) {
+            if (sizeLaberinto == 10) return 15;
+            if (sizeLaberinto == 20) return 30;
+            if (sizeLaberinto == 30) return 60;
+        }
+
+        if (modo == ModoJuego.PESADILLA) {
+            if (sizeLaberinto == 10) return 7;
+            if (sizeLaberinto == 20) return 10;
+            if (sizeLaberinto == 30) return 20;
+        }
+        return 0;
     }
 }

@@ -1,16 +1,16 @@
 package controller;
 
 import app.App;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 import java.net.URL;
@@ -33,6 +33,25 @@ public class AppController {
 
     @FXML
     private Button buttonComoJugar;
+
+    @FXML
+    private Label labelCierre;
+
+    @FXML
+    void labelCierreClicked(MouseEvent event) {
+        Platform.exit();
+        System.exit(0);
+    }
+
+    @FXML
+    void labelCierreEntered(MouseEvent event) {
+        labelCierre.setStyle("-fx-text-fill:red");
+    }
+
+    @FXML
+    void labelCierreExited(MouseEvent event) {
+        labelCierre.setStyle("-fx-text-fill:white");
+    }
 
     @FXML
     private TextField textFieldJugador;
@@ -58,9 +77,10 @@ public class AppController {
 
             LaberintoController laberintoController = fxmlLoader.getController();
             laberintoController.setScene(scene);
-            laberintoController.start(nombreJugador);
+            laberintoController.start(nombreJugador, 0.0, 0);
 
             stage.setOnCloseRequest(windowEvent -> {
+                laberintoController.pausarJuego();
                 if (laberintoController.isCambiosSinGuardar()) {
                     Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                     alert.setTitle("Confirmar Cierre");
@@ -92,7 +112,6 @@ public class AppController {
             stage.setScene(scene);
             stage.centerOnScreen();
             stage.setResizable(false);
-            //stage.setAlwaysOnTop(true);
             stage.show();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -101,7 +120,22 @@ public class AppController {
 
     @FXML
     void infoComoJugar(ActionEvent event) {
+        final Node node = (Node) event.getSource();
+        final Stage stages = (Stage) node.getScene().getWindow();
+        stages.setAlwaysOnTop(false);
 
+        FXMLLoader loader = new FXMLLoader(App.class.getResource("/comoJugar.fxml"));
+        try {
+            Scene scene = new Scene(loader.load(), 600, 500);
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.centerOnScreen();
+            stage.setResizable(false);
+            stage.initStyle(StageStyle.UNDECORATED);
+            stage.show();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @FXML

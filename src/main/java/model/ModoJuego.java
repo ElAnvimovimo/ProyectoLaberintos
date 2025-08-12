@@ -1,20 +1,18 @@
 package model;
 
 public enum ModoJuego {
-    NORMAL("Normal (contra el tiempo)", true, 10, 10),
-    LIBRE("Libre (sin tiempo limite)", false, 0, 0),
-    PESADILLA("Pesadilla... Cuidado :)", true, 5, 30);
+    NORMAL("NORMAL", true, 10),
+    LIBRE("LIBRE", false, 0),
+    PESADILLA("PESADILLA", true, 5);
 
     private final String nombre;
     private final boolean tieneTiempo;
     private final int tiempoSegundos;
-    private final int dificultad;
 
-    ModoJuego(String nombre, boolean tieneTiempo, int tiempoSegundos, int dificultad) {
+    ModoJuego(String nombre, boolean tieneTiempo, int tiempoSegundos) {
         this.nombre = nombre;
         this.tieneTiempo = tieneTiempo;
         this.tiempoSegundos = tiempoSegundos;
-        this.dificultad = dificultad;
     }
 
     public String getNombre() {
@@ -27,10 +25,6 @@ public enum ModoJuego {
 
     public int getTiempoSegundos() {
         return tiempoSegundos;
-    }
-
-    public int getDificultad() {
-        return dificultad;
     }
 
     @Override

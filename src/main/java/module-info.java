@@ -12,17 +12,18 @@ module mx.edu.utch.proyectolaberintos {
     requires java.desktop;
     requires javafx.media;
     requires java.sql;
-    requires org.json;
+    requires org.xerial.sqlitejdbc;
     requires com.fasterxml.jackson.databind;
     requires javafx.graphics;
     requires javafx.base;
+    requires com.google.gson;
 
     exports app;
     opens app to javafx.fxml;
     exports controller;
     opens controller to javafx.fxml;
     exports database;
-    opens database to javafx.fxml;
-    opens model to javafx.base;
+    opens database to javafx.base;
+    opens model to javafx.base, com.google.gson;
     exports model;
 }

@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 
@@ -18,7 +19,7 @@ public class App extends Application {
         Scene scene = new Scene(fxmlLoader.load(), 640, 400);
         stage.setTitle("Laberint.io :)");
         stage.setScene(scene);
+        stage.initStyle(StageStyle.UNDECORATED);
         stage.show();
-
     }
 }

@@ -1,37 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!--
-  Copyright (c) 2015, 2019, Gluon and/or its affiliates.
-  All rights reserved. Use is subject to license terms.
-
-  This file is available and licensed under the following license:
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  - Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  - Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in
-    the documentation and/or other materials provided with the distribution.
-  - Neither the name of Oracle Corporation nor the names of its
-    contributors may be used to endorse or promote products derived
-    from this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
--->
-
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
@@ -39,45 +8,6 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1" prefHeight="640.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/24.0.1"
       fx:controller="controller.LaberintoController">
     <children>
-        <MenuBar VBox.vgrow="NEVER">
-            <menus>
-                <Menu mnemonicParsing="false" text="File">
-                    <items>
-                        <MenuItem mnemonicParsing="false" text="New"/>
-                        <MenuItem mnemonicParsing="false" text="Open…"/>
-                        <Menu mnemonicParsing="false" text="Open Recent"/>
-                        <SeparatorMenuItem mnemonicParsing="false"/>
-                        <MenuItem mnemonicParsing="false" text="Close"/>
-                        <MenuItem mnemonicParsing="false" text="Save"/>
-                        <MenuItem mnemonicParsing="false" text="Save As…"/>
-                        <MenuItem mnemonicParsing="false" text="Revert"/>
-                        <SeparatorMenuItem mnemonicParsing="false"/>
-                        <MenuItem mnemonicParsing="false" text="Preferences…"/>
-                        <SeparatorMenuItem mnemonicParsing="false"/>
-                        <MenuItem mnemonicParsing="false" text="Quit"/>
-                    </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Edit">
-                    <items>
-                        <MenuItem mnemonicParsing="false" text="Undo"/>
-                        <MenuItem mnemonicParsing="false" text="Redo"/>
-                        <SeparatorMenuItem mnemonicParsing="false"/>
-                        <MenuItem mnemonicParsing="false" text="Cut"/>
-                        <MenuItem mnemonicParsing="false" text="Copy"/>
-                        <MenuItem mnemonicParsing="false" text="Paste"/>
-                        <MenuItem mnemonicParsing="false" text="Delete"/>
-                        <SeparatorMenuItem mnemonicParsing="false"/>
-                        <MenuItem mnemonicParsing="false" text="Select All"/>
-                        <MenuItem mnemonicParsing="false" text="Unselect All"/>
-                    </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Help">
-                    <items>
-                        <MenuItem mnemonicParsing="false" text="About MyHelloApp"/>
-                    </items>
-                </Menu>
-            </menus>
-        </MenuBar>
         <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
             <children>
                 <Label alignment="CENTER" layoutX="197.0" layoutY="14.0" style="&#10;" text="PROGRAMA DE LABERINTOS"
@@ -90,36 +20,46 @@
                       style="-fx-border-color: black;">
                     <children>
                         <Canvas fx:id="canvasMaze" height="400.0" width="400.0"/>
+                        <Label fx:id="labelPausa" layoutX="-16.0" layoutY="169.0"
+                               style="-fx-background-color: LIGHTGRAY; -fx-background-radius: 15; -fx-border-radius: 15; -fx-border-width: 20;"
+                               text="El juego está en PAUSA" textFill="WHITE">
+                            <font>
+                                <Font size="42.0"/>
+                            </font>
+                            <opaqueInsets>
+                                <Insets/>
+                            </opaqueInsets>
+                        </Label>
                     </children>
                 </Pane>
                 <Pane layoutX="98.0" layoutY="491.0" prefHeight="94.0" prefWidth="443.0"
                       style="-fx-background-color: #cfe4d8; -fx-background-radius: 20; -fx-border-radius: 20;">
                     <children>
                         <Button fx:id="buttonNuevoLaberinto" layoutX="23.0" layoutY="13.0" mnemonicParsing="false"
-                                onAction="#nuevoLaberinto" prefHeight="30.0" prefWidth="274.0"
-                                style="-fx-background-color: #7cbf7b;" text="Generar nuevo laberinto" textFill="WHITE">
+                                onAction="#nuevoLaberinto" prefHeight="68.0" prefWidth="274.0"
+                                style="-fx-background-color: #7cbf7b;" text="Generar nuevo laberinto y jugar"
+                                textFill="WHITE">
                             <font>
                                 <Font size="14.0"/>
                             </font>
                         </Button>
                         <ComboBox fx:id="comboBoxSizeLaberinto" layoutX="306.0" layoutY="15.0"
                                   onAction="#comboBoxSizeLaberintoClicked" prefHeight="26.0" prefWidth="114.0"
-                                  promptText="Dificultad" style="-fx-background-color: #b3e3b3;" visibleRowCount="5"/>
-                        <Button fx:id="buttonJugar" layoutX="23.0" layoutY="50.0" mnemonicParsing="false"
-                                onAction="#jugarLaberinto" prefHeight="30.0" prefWidth="268.0"
-                                style="-fx-background-color: #2b743e;" text="Jugar" textFill="WHITE">
-                            <font>
-                                <Font size="14.0"/>
-                            </font>
-                        </Button>
+                                  promptText="DIFICULTAD" style="-fx-background-color: #b3e3b3;" visibleRowCount="5">
+                        </ComboBox>
                         <ComboBox fx:id="comboBoxModoJuego" layoutX="306.0" layoutY="52.0"
                                   onAction="#comboBoxModoJuegoClicked" prefHeight="26.0" prefWidth="114.0"
-                                  promptText="Modo" style="-fx-background-color: #b3e3b3;" visibleRowCount="5"/>
+                                  promptText="MODO" style="-fx-background-color: #b3e3b3;" visibleRowCount="5">
+                        </ComboBox>
                     </children>
                 </Pane>
-                <Label fx:id="labelJugador" layoutX="230.0" layoutY="41.0" prefHeight="18.0" prefWidth="179.0"
-                       text="Nombre"/>
-                <Button fx:id="buttonGuardarPartida" layoutX="531.0" layoutY="18.0" mnemonicParsing="false"
+                <Label fx:id="labelJugador" alignment="CENTER" layoutX="230.0" layoutY="44.0" prefHeight="18.0"
+                       prefWidth="179.0" text="Nombre" textFill="#7cbf7b">
+                    <font>
+                        <Font name="System Bold" size="24.0"/>
+                    </font>
+                </Label>
+                <Button fx:id="buttonGuardarPartida" layoutX="18.0" layoutY="88.0" mnemonicParsing="false"
                         onAction="#guardarPartida" prefHeight="30.0" prefWidth="87.0"
                         style="-fx-background-color: #2b743e;" text="Guardar" textFill="WHITE">
                     <font>
@@ -127,11 +67,29 @@
                     </font>
                 </Button>
                 <Pane layoutX="14.0" layoutY="14.0" prefHeight="60.0" prefWidth="96.0"
-                      style="-fx-background-color: #2b743e; -fx-background-radius: 25; -fx-border-radius: 25;">
+                      style="-fx-background-color: #2b743e; -fx-background-radius: 15; -fx-border-radius: 15;">
                     <children>
-                        <Label fx:id="labelTiempo" layoutX="38.0" layoutY="13.0" text="--" textFill="WHITE">
+                        <Label fx:id="labelTiempo" alignment="CENTER" prefHeight="60.0" prefWidth="96.0" text="-:-"
+                               textAlignment="CENTER" textFill="WHITE">
                             <font>
                                 <Font name="System Bold" size="24.0"/>
+                            </font>
+                        </Label>
+                    </children>
+                </Pane>
+                <Pane layoutX="530.0" layoutY="11.0" prefHeight="60.0" prefWidth="96.0"
+                      style="-fx-background-color: #2b743e; -fx-background-radius: 15; -fx-border-radius: 15;">
+                    <children>
+                        <Label alignment="CENTER" layoutY="-16.0" prefHeight="60.0" prefWidth="96.0" text="Racha"
+                               textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold" size="17.0"/>
+                            </font>
+                        </Label>
+                        <Label fx:id="labelRacha" alignment="CENTER" contentDisplay="CENTER" layoutY="8.0"
+                               prefHeight="60.0" prefWidth="96.0" text="0.0" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold" size="17.0"/>
                             </font>
                         </Label>
                     </children>

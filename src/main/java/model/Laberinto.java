@@ -5,18 +5,19 @@ import java.util.List;
 import java.util.Random;
 
 public class Laberinto {
-    private int filas, columnas;
+    private final int filas;
+    private final int columnas;
     private Celda[][] laberinto;
-    private List<Celda> listaFronteras;
+    private final List<Celda> listaFronteras;
     private Celda celdaInicial;
 
     public Laberinto() {
-        this(10, 10);
+        this(10);
     }
 
-    public Laberinto(int filas, int columnas) {
-        this.filas = filas + 2;
-        this.columnas = columnas + 2;
+    public Laberinto(int size) {
+        this.filas = size + 2;
+        this.columnas = size + 2;
         this.laberinto = new Celda[this.filas][this.columnas];
         this.listaFronteras = new ArrayList<>();
     }

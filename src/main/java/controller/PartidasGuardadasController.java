@@ -16,7 +16,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 import model.LaberintoInfo;
 
-import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
@@ -53,71 +52,32 @@ public class PartidasGuardadasController {
     }
 
     private void cargarDatos() {
-        List<LaberintoInfo> laberintoInfos = jsqLite.listarLaberintosInfo();
+        List<LaberintoInfo> laberintoInfos = jsqLite.listarPartidasGuardadas();
         ObservableList<LaberintoInfo> lista = FXCollections.observableArrayList(laberintoInfos);
         tableViewLaberintos.setItems(lista);
     }
 
-    void tablaClicked(MouseEvent event) {
+    @FXML
+    void tablaClicked(javafx.scene.input.MouseEvent event) {
         LaberintoInfo laberintoInfo = tableViewLaberintos.getSelectionModel().getSelectedItem();
-        final Node node = (Node) event.getSource();
-        final Stage stages = (Stage) node.getScene().getWindow();
-        stages.close();
-
-        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource("tablero.fxml"));
-        try {
-            Scene scene = new Scene(fxmlLoader.load(), 454, 504);
-            Stage stage = new Stage();
-            stage.setScene(scene);
-
-            stage.centerOnScreen();
-            stage.setResizable(false);
-            LaberintoController laberintoController = fxmlLoader.getController();
-            laberintoController.reanudarPartida(laberintoInfo);
-
-            final Node nodes = (Node) event.getSource();
-            final Stage stagez = (Stage) nodes.getScene().getWindow();
-            stagez.close();
-
-            stage.setOnCloseRequest(windowEvent -> {
-                if (laberintoController.isCambiosSinGuardar()) {
-                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                    alert.setTitle("Confirmar Cierre");
-                    alert.setHeaderText("Hay cambios sin guardar");
-                    alert.setContentText("¿Estás seguro de que quieres salir?");
-                    Optional<ButtonType> accion = alert.showAndWait();
-                    if (accion.isPresent() && accion.get() == ButtonType.CANCEL) {
-                        windowEvent.consume();
-                    }
-                }
-            });
-
-            stage.show();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (laberintoInfo == null) {
+            return;
         }
-    }
 
-    public void tablaClicked(javafx.scene.input.MouseEvent event) {
-        LaberintoInfo laberintoInfo = tableViewLaberintos.getSelectionModel().getSelectedItem();
-        final Node node = (Node) event.getSource();
-        final Stage stages = (Stage) node.getScene().getWindow();
-        stages.close();
+        Stage currentStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        currentStage.close();
 
         FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource("/laberinto.fxml"));
         try {
             Scene scene = new Scene(fxmlLoader.load(), 640, 640);
             Stage stage = new Stage();
             stage.setScene(scene);
-
             stage.centerOnScreen();
             stage.setResizable(false);
-            LaberintoController laberintoController = fxmlLoader.getController();
-            laberintoController.reanudarPartida(laberintoInfo);
 
-            final Node nodes = (Node) event.getSource();
-            final Stage stagez = (Stage) nodes.getScene().getWindow();
-            stagez.close();
+            LaberintoController laberintoController = fxmlLoader.getController();
+            laberintoController.setScene(scene);
+            laberintoController.reanudarPartida(laberintoInfo);
 
             stage.setOnCloseRequest(windowEvent -> {
                 if (laberintoController.isCambiosSinGuardar()) {
@@ -134,7 +94,7 @@ public class PartidasGuardadasController {
 
             stage.show();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 }
